@@ -26,35 +26,16 @@ COMMON_EQUATIONS = (
 
 
 class DerivationView(ttk.Frame):
-    """Scrollable derivation cards with a hidden selectable transcript."""
+    """Full-height derivation cards with a hidden selectable transcript."""
 
     def __init__(self, parent):
         super().__init__(parent, style="Solution.TFrame")
-        self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
-        self.canvas = tk.Canvas(self, background="#f3f8f6", highlightthickness=0)
-        self.canvas.grid(row=0, column=0, sticky="nsew")
-        vertical = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
-        vertical.grid(row=0, column=1, sticky="ns")
-        self.canvas.configure(yscrollcommand=vertical.set)
-        self.inner = tk.Frame(self.canvas, background="#f3f8f6")
+        self.inner = tk.Frame(self, background="#f3f8f6")
         self.inner.columnconfigure(0, weight=1)
-        self.window = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
-        self.inner.bind("<Configure>", self._update_scroll_region)
-        self.canvas.bind("<Configure>", self._resize_inner)
-        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
+        self.inner.grid(row=0, column=0, sticky="ew")
         self.text = tk.Text(self, height=1, width=1)
         self.text.place(x=-100, y=-100)
-
-    def _update_scroll_region(self, _event=None):
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-
-    def _resize_inner(self, event):
-        self.canvas.itemconfigure(self.window, width=event.width)
-
-    def _on_mousewheel(self, event):
-        if self.winfo_exists():
-            self.canvas.yview_scroll(-1 * (event.delta // 120 or -1), "units")
 
     def _transcript(self, value):
         self.text.configure(state="normal")
@@ -107,15 +88,12 @@ class DerivationView(ttk.Frame):
             self._step_card(number, step, headers)
         self._section("Solution", solution_text(result))
         self._section("Verification", verification_text(result))
-        self.canvas.yview_moveto(0)
-        self._update_scroll_region()
 
     def set(self, value):
         """Keep the existing view contract for clearing the result."""
         self._transcript(value)
         for child in self.inner.winfo_children():
             child.destroy()
-        self._update_scroll_region()
 
 
 class ChemMatrixApp(ttk.Frame):
@@ -183,10 +161,26 @@ class ChemMatrixApp(ttk.Frame):
                  font=("Menlo", 9, "bold")).grid(row=0, column=4, padx=(20, 30), sticky="e")
 
     def _build_workspace(self):
-        page = ttk.Frame(self, padding=(56, 42, 56, 0), style="Page.TFrame")
-        page.grid(row=1, column=0, sticky="nsew")
+        scroll_shell = ttk.Frame(self, style="Page.TFrame")
+        scroll_shell.grid(row=1, column=0, sticky="nsew")
+        scroll_shell.rowconfigure(0, weight=1)
+        scroll_shell.columnconfigure(0, weight=1)
+        self.page_canvas = tk.Canvas(scroll_shell, background="#f3f8f6", highlightthickness=0)
+        self.page_canvas.grid(row=0, column=0, sticky="nsew")
+        page_scrollbar = ttk.Scrollbar(scroll_shell, orient="vertical",
+                                       command=self.page_canvas.yview)
+        page_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.page_canvas.configure(yscrollcommand=page_scrollbar.set)
+        page = ttk.Frame(self.page_canvas, padding=(56, 42, 56, 30), style="Page.TFrame")
+        page_window = self.page_canvas.create_window((0, 0), window=page, anchor="nw")
+        page.bind("<Configure>", lambda _event: self.page_canvas.configure(
+            scrollregion=self.page_canvas.bbox("all")))
+        self.page_canvas.bind("<Configure>",
+                              lambda event: self.page_canvas.itemconfigure(page_window, width=event.width))
+        self.page_canvas.bind_all("<MouseWheel>", self._scroll_page, add="+")
+        self.page_canvas.bind_all("<Button-4>", self._scroll_page, add="+")
+        self.page_canvas.bind_all("<Button-5>", self._scroll_page, add="+")
         page.columnconfigure(0, weight=1)
-        page.rowconfigure(4, weight=1)
 
         hero = ttk.Frame(page, style="Page.TFrame")
         hero.grid(row=0, column=0, sticky="ew", pady=(0, 30))
@@ -247,8 +241,17 @@ class ChemMatrixApp(ttk.Frame):
         ttk.Label(derivation, textvariable=self.operation_count, style="Meta.TLabel").pack(side="right")
 
         self.solution_view = DerivationView(page)
-        self.solution_view.grid(row=4, column=0, sticky="nsew")
+        self.solution_view.grid(row=4, column=0, sticky="ew")
         self.input_var.trace_add("write", self._invalidate)
+
+    def _scroll_page(self, event):
+        if not self.page_canvas.winfo_exists():
+            return
+        if getattr(event, "num", None) == 4 or event.delta > 0:
+            units = -1
+        else:
+            units = 1
+        self.page_canvas.yview_scroll(units, "units")
 
     def _invalidate(self, *_):
         if self.result is not None:
