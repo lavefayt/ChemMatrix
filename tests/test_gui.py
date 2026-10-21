@@ -27,7 +27,7 @@ class GuiTests(unittest.TestCase):
         app = ChemMatrixApp(self.root)
         self.root.update()
         text = app.solution_view.text.get("1.0", "end-1c")
-        self.assertEqual(len(COMMON_EQUATIONS), 5)
+        self.assertEqual(len(COMMON_EQUATIONS), 11)
         self.assertEqual(app.result.coefficients, (1, 5, 3, 4))
         self.assertIn("ROW OPERATIONS", text)
         self.assertIn("LINEAR ALGEBRA EXTENSION", text)

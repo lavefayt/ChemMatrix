@@ -17,6 +17,12 @@ COMMON_EQUATIONS = (
     "Ca(OH)2 + HCl -> CaCl2 + H2O",
     "Al + H2SO4 -> Al2(SO4)3 + H2",
     "KClO3 -> KCl + O2",
+    "H2 + O2 -> H2O",
+    "N2 + H2 -> NH3",
+    "CH4 + O2 -> CO2 + H2O",
+    "C2H5OH + O2 -> CO2 + H2O",
+    "CaCO3 -> CaO + CO2",
+    "Na + Cl2 -> NaCl",
 )
 
 
