@@ -117,6 +117,16 @@ def parse_formula(formula: str) -> dict[str, int]:
     return dict(atoms)
 
 
+def _strip_coefficient(term: str) -> str:
+    """Drop a leading whole-number coefficient (2H2O or 2 H2O); the balancer recomputes it."""
+    match = re.fullmatch(r"(\d+)\s*(.*)", term)
+    if not match:
+        return term
+    if int(match.group(1)) < 1:
+        raise EquationError("Coefficients must be positive whole numbers.")
+    return match.group(2)
+
+
 def parse_equation(text: str) -> Equation:
     """Accept exactly two nonempty sides separated by ->, →, or =."""
     if not text.strip():
@@ -131,6 +141,7 @@ def parse_equation(text: str) -> Equation:
         raise EquationError("Each side needs compounds separated by +. Remove empty terms or ionic charges.")
     if sum(map(len, raw_sides)) > MAX_COMPOUNDS:
         raise EquationError("Use at most 12 compounds in total.")
+    raw_sides = [[_strip_coefficient(part) for part in side] for side in raw_sides]
     parsed = [tuple(Compound(part, parse_formula(part)) for part in side) for side in raw_sides]
     elements = tuple(dict.fromkeys(e for side in parsed for c in side for e in c.atoms))
     if len(elements) > MAX_ELEMENTS:
