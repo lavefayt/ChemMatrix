@@ -30,7 +30,6 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(len(COMMON_EQUATIONS), 11)
         self.assertEqual(app.result.coefficients, (1, 5, 3, 4))
         self.assertIn("ROW OPERATIONS", text)
-        self.assertIn("LINEAR ALGEBRA EXTENSION", text)
         self.assertIn("A x =", text)
         app.destroy()
 
@@ -43,7 +42,6 @@ class GuiTests(unittest.TestCase):
         app.copy_solution()
         copied = self.root.clipboard_get()
         self.assertIn("CHEMICAL BALANCING MODEL", copied)
-        self.assertIn("WHAT-IF: CHANGE b", copied)
         app.destroy()
 
 

@@ -2,8 +2,12 @@
 
 from math import lcm
 
-from .linear import ProductionResult, matrix_product, matrix_vector_product
 from .solver import BalanceResult, format_equation, verify_atoms
+
+
+def matrix_vector_product(matrix, vector):
+    return tuple(sum(value * entry for value, entry in zip(row, vector))
+                 for row in matrix)
 
 
 def matrix_text(matrix, headers=None, labels=None) -> str:
@@ -103,44 +107,10 @@ def verification_text(result: BalanceResult) -> str:
             + "A0 x0 = (" + ", ".join(map(str, residual)) + ")^T = 0")
 
 
-def production_text(result: ProductionResult) -> str:
-    identity = matrix_product(result.matrix, result.inverse)
-    identity_text = matrix_text(identity, headers=("", "", ""), labels=("", "", ""))
-    return ("LINEAR ALGEBRA EXTENSION: CHEMICAL PRODUCTION\n\n"
-            "A chemical plant makes three product batches using three limited resources.\n"
-            "x1 = small batches, x2 = standard batches, x3 = large batches.\n\n"
-            "2x1 + x2 + 3x3 = 130\n"
-            "x1 + 2x2 + x3 = 80\n"
-            "3x1 + x2 + 2x3 = 110\n\n"
-            "A x = b, with A =\n"
-            + matrix_text(result.matrix, headers=("x1", "x2", "x3"),
-                          labels=("R1", "R2", "R3"))
-            + "\nb = (130, 80, 110)^T\n\n"
-            "GAUSS-JORDAN ON [A | b]\n"
-            + matrix_text(result.reduction.matrix, headers=("x1", "x2", "x3", "b"))
-            + "\nSolution: x = (" + ", ".join(map(str, result.solution)) + ")^T\n"
-            f"det(A) = {result.determinant}, so A is invertible and this solution is unique.\n\n"
-            "MATRIX VERIFICATION\n"
-            "Ax = (" + ", ".join(map(str, result.verification)) + ")^T = b\n"
-            "A A^-1 = I\n" + identity_text + "\n\n"
-            "INTERPRETATION AND METHOD COMPARISON\n"
-            "The solution gives the batch quantities required by the three resource totals. "
-            "Gauss-Jordan is used because every elementary row operation is visible and "
-            "it works directly on [A | b]. The inverse method is useful when A stays fixed "
-            "for repeated supply changes. Cramer's rule is valid here because det(A) != 0, "
-            "but three replacement determinants are less efficient for larger systems.\n\n"
-            "WHAT-IF: CHANGE b\n"
-            "Change b to (150, 80, 110)^T and reuse A^-1:\n"
-            "x_new = A^-1 b_new = (" + ", ".join(map(str, result.what_if_solution)) + ")^T\n"
-            "The changed resource total produces a different, fractional batch plan.")
-
-
-def worked_solution(result: BalanceResult, production: ProductionResult | None = None) -> str:
+def worked_solution(result: BalanceResult) -> str:
     steps = "\n\n".join(
         f"STEP {index}: {step.description}\n{matrix_text(step.matrix, headers=system_headers(result))}"
         for index, step in enumerate(result.reduction.steps, start=1))
     text = (model_text(result) + "\n\nROW OPERATIONS\n" + steps + "\n\n"
             + solution_text(result) + "\n\n" + verification_text(result))
-    if production:
-        text += "\n\n" + production_text(production)
     return text

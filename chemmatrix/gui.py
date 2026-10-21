@@ -4,9 +4,8 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 
-from .explanation import (matrix_text, model_text, production_text, solution_text,
+from .explanation import (matrix_text, model_text, solution_text,
                           system_headers, verification_text, worked_solution)
-from .linear import production_result
 from .parser import EquationError
 from .solver import balance, format_equation
 
@@ -91,8 +90,8 @@ class DerivationView(ttk.Frame):
                  font=("Menlo", 10), justify="left", anchor="e").grid(
                      row=0, column=2, rowspan=2, sticky="e", padx=(18, 0))
 
-    def set_solution(self, result, production):
-        transcript = worked_solution(result, production)
+    def set_solution(self, result):
+        transcript = worked_solution(result)
         self._transcript(transcript)
         for child in self.inner.winfo_children():
             child.destroy()
@@ -108,7 +107,6 @@ class DerivationView(ttk.Frame):
             self._step_card(number, step, headers)
         self._section("Solution", solution_text(result))
         self._section("Verification", verification_text(result))
-        self._section("Linear algebra extension and what-if", production_text(production))
         self.canvas.yview_moveto(0)
         self._update_scroll_region()
 
@@ -125,7 +123,6 @@ class ChemMatrixApp(ttk.Frame):
         super().__init__(root, padding=0, style="App.TFrame")
         self.root = root
         self.result = None
-        self.production = production_result()
         root.title("ChemMatrix - Linear Algebra Chemical Balancer")
         root.geometry("1180x900")
         root.minsize(780, 620)
@@ -286,13 +283,13 @@ class ChemMatrixApp(ttk.Frame):
         self.result_var.set(format_equation(result.equation, result.coefficients)
                             if result.coefficients else result.message)
         self.operation_count.set(f"{len(result.reduction.steps) - 1} ROW OPERATIONS")
-        self.solution_view.set_solution(result, self.production)
+        self.solution_view.set_solution(result)
         self.copy_button.configure(state="normal")
 
     def copy_solution(self):
         if self.result:
             self.root.clipboard_clear()
-            self.root.clipboard_append(worked_solution(self.result, self.production))
+            self.root.clipboard_append(worked_solution(self.result))
             self.result_var.set("Complete worked solution copied.")
 
 
