@@ -10,7 +10,7 @@ from .matrix import Matrix, Reduction, rref
 from .parser import Equation, parse_equation
 
 
-Status = Literal["balanced", "zero_only", "no_positive", "multiple_free"]
+Status = Literal["balanced", "inconsistent", "no_positive", "multiple_free"]
 
 
 @dataclass(frozen=True)
@@ -27,9 +27,11 @@ class AtomCount:
 @dataclass(frozen=True)
 class BalanceResult:
     equation: Equation
-    matrix: Matrix
-    reduction: Reduction
+    matrix: Matrix                     # A0 (homogeneous, m x n): A0 x0 = 0
+    normalized: Matrix                 # [A | b] after fixing x1 = 1 (m x n)
+    reduction: Reduction               # Gauss-Jordan on [A | b]
     status: Status
+    solution: tuple[Fraction, ...] | None      # (1, x2, ..., xn) before clearing fractions
     coefficients: tuple[int, ...] | None
     message: str
 
@@ -39,6 +41,11 @@ def build_matrix(equation: Equation) -> Matrix:
     return tuple(tuple(Fraction(c.atoms.get(element, 0) * (1 if i < split else -1))
                        for i, c in enumerate(equation.compounds))
                  for element in equation.elements)
+
+
+def build_normalized_system(matrix: Matrix) -> Matrix:
+    """Fix x1 = 1: move column 1 of A0 to the right-hand side, b = -(column 1)."""
+    return tuple(row[1:] + (-row[0],) for row in matrix)
 
 
 def normalize_coefficients(vector) -> tuple[int, ...]:
@@ -74,25 +81,28 @@ def verify_atoms(equation: Equation, coefficients) -> tuple[AtomCount, ...]:
 def balance(text: str) -> BalanceResult:
     equation = parse_equation(text)
     matrix = build_matrix(equation)
-    reduction = rref(matrix)
-    basis = reduction.basis
-    if not basis:
-        status, coefficients = "zero_only", None
-        message = "Only x = 0 satisfies this system. No balance includes all listed compounds."
-    elif len(basis) > 1:
-        status, coefficients = "multiple_free", None
-        message = ("Multiple independent free variables remain. The general solution is shown; "
+    normalized = build_normalized_system(matrix)
+    reduction = rref(normalized, pivot_columns=len(equation.compounds) - 1)
+    solution = coefficients = None
+    if not reduction.consistent:
+        status = "inconsistent"
+        message = "Fixing x1 = 1 gives an inconsistent system. No balance includes all listed compounds."
+    elif reduction.free_columns:
+        status = "multiple_free"
+        message = ("Free variables remain after fixing x1 = 1. The general solution is shown; "
                    "ChemMatrix does not automatically choose a balance for this system.")
     else:
+        solution = (Fraction(1),) + tuple(reduction.matrix[row][-1] for row in range(reduction.rank))
         try:
-            coefficients = normalize_coefficients(basis[0])
+            coefficients = normalize_coefficients(solution)
         except ValueError as error:
-            status, coefficients, message = "no_positive", None, str(error)
+            status, message = "no_positive", str(error)
         else:
             status = "balanced"
             message = "Balanced with the smallest positive whole-number coefficients."
             assert all(count.matches for count in verify_atoms(equation, coefficients))
-    return BalanceResult(equation, matrix, reduction, status, coefficients, message)
+    return BalanceResult(equation, matrix, normalized, reduction, status,
+                         solution, coefficients, message)
 
 
 def format_equation(equation: Equation, coefficients) -> str:

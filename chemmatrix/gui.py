@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from .explanation import (matrix_text, model_text, production_text, solution_text,
-                          verification_text, worked_solution)
+                          system_headers, verification_text, worked_solution)
 from .linear import production_result
 from .parser import EquationError
 from .solver import balance, format_equation
@@ -74,7 +74,7 @@ class DerivationView(ttk.Frame):
                  font=("Menlo", 10), justify="left", anchor="w").grid(
                      row=1, column=0, sticky="w", pady=(9, 0))
 
-    def _step_card(self, number, step):
+    def _step_card(self, number, step, headers):
         card = tk.Frame(self.inner, background="#f8fbfa", highlightbackground="#d9e7e3",
                         highlightthickness=1, padx=20, pady=16)
         card.grid(row=self.inner.grid_size()[1], column=0, sticky="ew", pady=(0, 12))
@@ -87,7 +87,7 @@ class DerivationView(ttk.Frame):
                  font=("Menlo", 8, "bold"), anchor="w").grid(row=0, column=1, sticky="w")
         tk.Label(card, text=step.description, background="#f8fbfa", foreground="#173c39",
                  font=("Menlo", 10), anchor="w").grid(row=1, column=1, sticky="w", pady=(7, 0))
-        tk.Label(card, text=matrix_text(step.matrix), background="#f8fbfa", foreground="#173c39",
+        tk.Label(card, text=matrix_text(step.matrix, headers=headers), background="#f8fbfa", foreground="#173c39",
                  font=("Menlo", 10), justify="left", anchor="e").grid(
                      row=0, column=2, rowspan=2, sticky="e", padx=(18, 0))
 
@@ -103,8 +103,9 @@ class DerivationView(ttk.Frame):
                  foreground="#197568", font=("Menlo", 9, "bold")).pack(side="left")
         tk.Label(heading, text=f"{len(result.reduction.steps)} steps", background="#e8f1ef",
                  foreground="#56716c", font=("Menlo", 9), padx=9, pady=4).pack(side="right")
+        headers = system_headers(result)
         for number, step in enumerate(result.reduction.steps, start=1):
-            self._step_card(number, step)
+            self._step_card(number, step, headers)
         self._section("Solution", solution_text(result))
         self._section("Verification", verification_text(result))
         self._section("Linear algebra extension and what-if", production_text(production))
@@ -284,7 +285,7 @@ class ChemMatrixApp(ttk.Frame):
         self.result = result
         self.result_var.set(format_equation(result.equation, result.coefficients)
                             if result.coefficients else result.message)
-        self.operation_count.set(f"{len(result.reduction.steps)} ROW OPERATIONS")
+        self.operation_count.set(f"{len(result.reduction.steps) - 1} ROW OPERATIONS")
         self.solution_view.set_solution(result, self.production)
         self.copy_button.configure(state="normal")
 
