@@ -1,167 +1,76 @@
 # ChemMatrix
 
-An offline Tkinter app that balances chemical equations by solving a homogeneous
-linear system with exact fractions. Built for a linear algebra final project.
+ChemMatrix is an offline Tkinter chemical-equation balancer built as a linear algebra final project. It keeps the original chemistry concept while presenting the complete matrix work in one balancer view.
 
-**Five features:** equation input, automatic conservation matrix, step-by-step
-Gauss–Jordan elimination, atom-count verification, and ten practice exercises.
+## Core workflow
 
-![ChemMatrix balancer showing the propane model](docs/images/balancer.png)
+1. Enter an unbalanced equation or choose one from the Common equations list.
+2. Select Balance or press Enter.
+3. Read the conservation equations and matrix `A x = 0`.
+4. Follow every elementary row operation. Each line includes the resulting matrix.
+5. Check atom totals and the zero residual vector.
+6. Copy the complete worked solution when needed.
 
-![ChemMatrix practice showing atom-count feedback](docs/images/practice.png)
+The balancer uses exact fractions, Gauss-Jordan elimination, nullspace vectors, integer normalization, and independent atom verification. Supported formulas include parentheses and repeated elements. Charges, hydrates, state labels, and leading coefficients are rejected with a correction message.
 
-## Run on Windows
+## Linear algebra requirement extension
 
-Use Python **3.10 or newer** with Tcl/Tk support. This project was checked with
-Python 3.13 and Tk 8.6 on Windows.
+Chemical balancing is naturally homogeneous. For propane, the 3 x 4 conservation matrix has a one-dimensional nullspace, so a nonzero balance is not unique as a vector; its positive integer ratio is selected by normalization.
 
-Open PowerShell in the repository:
-
-```powershell
-python --version
-python -m tkinter
-python main.py
-```
-
-The Tkinter command opens a small diagnostic window; close it before launching
-ChemMatrix. No pip installation is needed. `requirements.txt` documents that all
-runtime modules are part of the standard library.
-
-Optional isolated environment (activation is unnecessary):
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe main.py
-```
-
-If `python` is unavailable, try `py` or install Python with the **Tcl/Tk and IDLE**
-component enabled. If `_tkinter` is missing, modify/reinstall Python to include
-that component; `pip install tkinter` is not the fix. On Linux, Tk may require
-the operating system's Python Tk package and a graphical desktop session.
-
-## Use the app
-
-1. Enter an equation without leading coefficients, or select an example.
-2. Select **Balance** or press Enter in the equation field.
-3. Read the **Model**: variables, conservation equations, and labeled matrix.
-4. Open **Solution Steps** and use Next/Previous to follow each row operation.
-   The final step explains free variables and integer normalization.
-5. Open **Verification** to compare atom totals and the zero residual vector.
-6. Select **Copy worked solution** to copy all views and all row operations.
-
-Editing the equation immediately clears the previous result. Clear empties the
-input. Tab moves between controls; Ctrl+Tab switches notebook tabs; Enter in a
-practice coefficient field checks the answer. Output can be selected and copied,
-and both horizontal and vertical scrollbars are available.
-
-In **Practice**, choose an exercise by difficulty, enter every coefficient
-(including 1), and check atom counts. A proportional answer is balanced but needs
-reduction before it counts as solved. Retry clears the fields. Hint and Reveal
-mark that exercise as assisted for the session; a later answer on that exercise
-does not earn an independent completion. An exercise already solved independently
-retains that achievement if a hint is viewed afterward. Progress resets when the
-app closes; changing exercises clears the coefficient fields.
-
-## Supported input
+The same balancer view therefore includes a compact realistic chemical-production system with a unique 3 x 3 solution:
 
 ```text
-C3H8 + O2 -> CO2 + H2O
-Fe + O2 → Fe2O3
-Ca(OH)2 + HCl = CaCl2 + H2O
-Al + H2SO4 -> Al2(SO4)3 + H2
+2x1 + x2 + 3x3 = 130
+x1 + 2x2 + x3 = 80
+3x1 + x2 + 2x3 = 110
 ```
 
-- Use case-sensitive element symbols and ordinary digits: `Co` and `CO` differ.
-- Parentheses and repeated elements are supported, including `CH3COOH`.
-- Whitespace is allowed around compounds and separators, not inside formulas.
-- Leave out coefficients, ionic charges, hydrate dots, square brackets, and state
-  labels such as `(aq)`. The app gives a correction message for unsupported input.
-- Limits: 500 input characters, 12 compounds total, 12 distinct elements, four
-  nested parenthesis levels, and each explicit subscript from 1 to 999 without
-  leading zeros. Practice entries allow up to six digits.
+Here `x1`, `x2`, and `x3` are small, standard, and large chemical-product batches, while the rows represent three limited production resources. The app shows Gauss-Jordan reduction of `[A | b]`, `det(A) = -8`, the unique solution `(10, 20, 30)^T`, `Ax = b`, and `AA^-1 = I`.
 
-The app checks syntax, element symbols, and atom conservation. It does not check
-valence, predict products, or establish that a reaction occurs.
+The What-if section changes `b` to `(150, 80, 110)^T` and reuses `A^-1`, producing `(5/2, 35/2, 85/2)^T`. The text explains why Gauss-Jordan is the primary method, when the inverse method is useful, and why Cramer's rule is less efficient for larger systems.
 
-## The linear algebra
+## Run
 
-Each element produces one equation. Each compound contributes one unknown
-coefficient. Reactant counts enter positively and product counts negatively:
+Python 3.10 or newer with Tcl/Tk support is required. The project uses only the standard library; `requirements.txt` contains no third-party packages.
 
-```text
-A x = 0
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+./.venv/bin/python -m pip install -r requirements.txt
+./.venv/bin/python main.py
 ```
 
-For propane, three element equations give a 3×4 matrix with rank 3 and nullity 1.
-Its nullspace is spanned by `(1/4, 5/4, 3/4, 1)`. Multiplying by 4 gives the
-smallest integer ratio `(1, 5, 3, 4)`.
+Windows PowerShell:
 
-Rectangular matrices have no determinant. For a square matrix, a zero determinant
-means a nontrivial nullspace exists; positive coefficients still need checking.
-See the [worked mathematical model](docs/mathematics.md).
+```powershell
+py -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe main.py
+```
 
-The solver reports four explicit outcomes:
-
-| Status | Meaning |
-| --- | --- |
-| `balanced` | One free variable yields strictly positive coefficients. |
-| `zero_only` | Full column rank; only the zero vector solves the system. |
-| `no_positive` | The one-dimensional solution requires a zero or mixed signs. |
-| `multiple_free` | The general solution has multiple parameters; no automatic balance is selected. |
-
-`C + O2 -> CO + CO2` demonstrates the last case. Multiple free variables do not
-mean balancing is impossible; this version deliberately presents the family.
+If Tkinter is unavailable, install Python with Tcl/Tk support. Tkinter is not installed through pip.
 
 ## Tests
 
-```powershell
-python -m unittest discover -s tests -v
-python -m compileall -q chemmatrix main.py tests
+```bash
+./.venv/bin/python -m unittest discover -s tests -v
+./.venv/bin/python -m compileall -q chemmatrix main.py tests
 ```
 
-Tests cover parsing, input boundaries, exact elimination, replay of row operations,
-normalization, exceptional systems, practice feedback, and real Tk widgets. The
-GUI tests briefly open windows and use the clipboard. They skip if Tk cannot open
-a graphical session. To run just the math checks:
+The tests cover parsing, chemical balancing, exact row-operation replay, the unique 3 x 3 system, inverse and matrix verification, the what-if result, the single-page GUI, common-equation selection, and clipboard export.
 
-```powershell
-python -m unittest tests.test_core -v
-```
-
-See [validation notes and the manual checklist](docs/validation.md).
-The repository also includes a Windows GitHub Actions workflow for core checks
-on Python 3.10 and 3.13; graphical widget checks run locally.
-
-## Repository guide
+## Structure
 
 ```text
-main.py                  Application entry point
+main.py
 chemmatrix/
-  parser.py              Neutral formulas, equation structure, limits
-  matrix.py              Exact RREF and recorded elementary operations
-  solver.py              Conservation matrix, coefficient derivation, verification
-  explanation.py         Teaching text and clipboard export
-  practice.py            Ten exercises and answer feedback
-  gui.py                 Tkinter/ttk interface
-tests/                   Standard-library unit and widget integration tests
-docs/
-  mathematics.md         Worked model and core function contracts
-  assignment-checklist.md
-  report-draft.md         Editable report with group-member placeholders
-  presentation-script.md Timed 3–5 minute demo script
-  validation.md
-  images/                Actual application screenshots
-requirements.txt         Standard-library-only dependency declaration
+  parser.py              Formula and equation parsing
+  matrix.py              Exact RREF and recorded row operations
+  solver.py              Chemical conservation matrix and balancer
+  linear.py              Unique 3 x 3 production model and inverse checks
+  explanation.py         Continuous worked-solution text
+  gui.py                 Single balancer interface
+tests/                   Core and GUI tests
+docs/                    Assignment and presentation material
 ```
-
-## Submission preparation
-
-The supplied handout lists traffic, electrical circuits, economics, and software
-engineering systems. **Chemistry-topic acceptance remains unconfirmed.** The
-[assignment checklist](docs/assignment-checklist.md) records that distinction.
-
-The report and script are editable Markdown drafts. Fill in group details, format
-the report to 2–3 pages, record a 3–5 minute video, and include the source code.
-The earlier video supplied the presentation sequence; its circuit model is not
-used as evidence for the chemistry model.
